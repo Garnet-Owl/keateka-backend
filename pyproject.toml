@@ -1,0 +1,52 @@
+[tool.poetry]
+name = "keateka-backend"
+version = "0.1.0"
+description = "KeaTeka Cleaning Service Backend"
+authors = ["James Wanjiku <james544@wanjiku@gmail.com>"]
+readme = "README.md"
+packages = [
+    { include = "app" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.12.6"
+flask = "^3.1.0"
+sqlalchemy = "^2.0.36"
+alembic = "^1.14.0"
+pydantic = "^2.10.1"
+psycopg2-binary = "^2.9.10"
+python-dotenv = "^1.0.1"
+pyjwt = "^2.10.0"
+firebase-admin = "^6.6.0"
+fastapi = "^0.115.5"
+uvicorn = "^0.32.1"
+
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-cov = "^6.0.0"
+black = "^24.10.0"
+flake8 = "^7.1.1"
+mypy = "^1.13.0"
+ruff = "^0.8.0"
+pre-commit = "^4.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
