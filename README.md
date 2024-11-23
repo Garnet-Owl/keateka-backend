@@ -188,6 +188,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- Project Link: [https://github.com/your-org/keateka-backend](https://github.com/your-org/keateka-backend)
+- Project Link: [https://github.com/Garnet-Owl/keateka-backend](https://github.com/Garnet-Owl/keateka-backend)
 - Documentation: [https://docs.keateka.com](https://docs.keateka.com)
 - Support: [support@keateka.com](mailto:support@keateka.com)
+
+
+![img.png](img.png)

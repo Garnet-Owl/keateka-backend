@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime  # Add this import
 from typing import Dict
 
+from app.middleware.rate_limiter import RateLimiter
+
 # Create FastAPI instance
 app = FastAPI(
     title="KeaTeka API",
@@ -18,6 +20,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add rate limiting to auth endpoints
+app.add_middleware(RateLimiter, times=5, seconds=60)  # 5 requests  # per minute
 
 
 @app.get("/")

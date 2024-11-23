@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "keateka-backend"
+name = "keateka_backend"
 version = "0.1.0"
 description = "KeaTeka Cleaning Service Backend"
 authors = ["James Wanjiku <james544@wanjiku@gmail.com>"]
