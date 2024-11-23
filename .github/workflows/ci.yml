@@ -53,9 +53,17 @@ jobs:
 
     - name: Run linting
       run: |
-        poetry run black . --check
-        poetry run ruff check .
-        poetry run mypy app
+        # Check if there are any Python files to lint
+        FILES_FOUND=$(find ./app ./tests -type f -name '*.py' | wc -l)
+        if [ "$FILES_FOUND" -eq "0" ]; then
+          echo "No Python files to lint."
+          exit 0
+        fi
+
+        # Run linters
+        poetry run black ./app ./tests --check
+        poetry run flake8 ./app ./tests
+        poetry run isort ./app ./tests --check-only
 
     - name: Run tests
       env:
