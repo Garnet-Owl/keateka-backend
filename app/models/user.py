@@ -24,7 +24,9 @@ class User(Base):
     )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    phone_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    phone_number: Mapped[str] = mapped_column(
+        String(20), unique=True, nullable=False
+    )
 
     # User Type and Status
     user_type: Mapped[UserType] = mapped_column(Enum(UserType), nullable=False)
@@ -39,17 +41,27 @@ class User(Base):
     completed_jobs: Mapped[int] = mapped_column(Integer, default=0)
 
     # Firebase Cloud Messaging token for notifications
-    fcm_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    fcm_token: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )
 
     # Relationships
     client_jobs = relationship(
-        "Job", foreign_keys="Job.client_id", back_populates="client", lazy="dynamic"
+        "Job",
+        foreign_keys="Job.client_id",
+        back_populates="client",
+        lazy="dynamic",
     )
 
     cleaner_jobs = relationship(
-        "Job", foreign_keys="Job.cleaner_id", back_populates="cleaner", lazy="dynamic"
+        "Job",
+        foreign_keys="Job.cleaner_id",
+        back_populates="cleaner",
+        lazy="dynamic",
     )
 
     reviews = relationship(
-        "JobReview", foreign_keys="JobReview.reviewer_id", back_populates="reviewer"
+        "JobReview",
+        foreign_keys="JobReview.reviewer_id",
+        back_populates="reviewer",
     )

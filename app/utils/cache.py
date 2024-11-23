@@ -60,7 +60,9 @@ def cache_response(prefix: str, expire: int = 300):
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any):
             # Skip caching for non-GET requests
-            request = next((arg for arg in args if isinstance(arg, Request)), None)
+            request = next(
+                (arg for arg in args if isinstance(arg, Request)), None
+            )
             if request and request.method != "GET":
                 return await func(*args, **kwargs)
 

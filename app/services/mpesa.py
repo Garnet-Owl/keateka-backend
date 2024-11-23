@@ -17,7 +17,9 @@ class MPESAClient:
         self.passkey = settings.MPESA_PASSKEY
 
         # API endpoints
-        self.env = "sandbox" if settings.MPESA_ENVIRONMENT == "sandbox" else "api"
+        self.env = (
+            "sandbox" if settings.MPESA_ENVIRONMENT == "sandbox" else "api"
+        )
         self.base_url = f"https://{self.env}.safaricom.co.ke"
         self.token_url = (
             f"{self.base_url}/oauth/v1/generate?grant_type=client_credentials"
@@ -90,7 +92,9 @@ def initiate_payment(
             "TransactionDesc": description,
         }
 
-        response = requests.post(client.stk_push_url, headers=headers, json=payload)
+        response = requests.post(
+            client.stk_push_url, headers=headers, json=payload
+        )
         response.raise_for_status()
 
         return response.json()

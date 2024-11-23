@@ -1,5 +1,14 @@
 from typing import TYPE_CHECKING
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Enum, Float, Text
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    DateTime,
+    Enum,
+    Float,
+    Text,
+)
 from sqlalchemy.orm import relationship
 import enum
 

@@ -37,7 +37,8 @@ def list_jobs(
     elif current_user.user_type == UserType.CLEANER:
         # For cleaners, show available jobs and their assigned jobs
         query = query.filter(
-            (Job.status == JobStatus.PENDING) | (Job.cleaner_id == current_user.id)
+            (Job.status == JobStatus.PENDING)
+            | (Job.cleaner_id == current_user.id)
         )
 
     return query.offset(skip).limit(limit).all()
@@ -60,14 +61,16 @@ def get_job(
 
     # Check permissions
     if (
-        current_user.user_type == UserType.CLIENT and job.client_id != current_user.id
+        current_user.user_type == UserType.CLIENT
+        and job.client_id != current_user.id
     ) or (
         current_user.user_type == UserType.CLEANER
         and job.cleaner_id != current_user.id
         and job.status != JobStatus.PENDING
     ):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions",
         )
 
     return job
@@ -229,7 +232,10 @@ def create_review(
     # Check if user already left a review
     existing_review = (
         db.query(JobReview)
-        .filter(JobReview.job_id == job_id, JobReview.reviewer_id == current_user.id)
+        .filter(
+            JobReview.job_id == job_id,
+            JobReview.reviewer_id == current_user.id,
+        )
         .first()
     )
 

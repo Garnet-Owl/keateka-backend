@@ -38,7 +38,10 @@ def send_notification(
 
 
 def send_bulk_notification(
-    user_ids: list[int], title: str, body: str, data: Optional[Dict[str, str]] = None
+    user_ids: list[int],
+    title: str,
+    body: str,
+    data: Optional[Dict[str, str]] = None,
 ) -> Dict[str, int]:
     """
     Send notification to multiple users

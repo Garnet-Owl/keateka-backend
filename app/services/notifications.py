@@ -20,7 +20,11 @@ class NotificationService:
             pass
 
     def send_notification(
-        self, token: str, title: str, body: str, data: Optional[Dict[str, str]] = None
+        self,
+        token: str,
+        title: str,
+        body: str,
+        data: Optional[Dict[str, str]] = None,
     ) -> bool:
         """
         Send a Firebase Cloud Message to a specific device
@@ -75,7 +79,11 @@ class NotificationService:
             return {"success_count": 0, "failure_count": len(tokens)}
 
     def send_topic_message(
-        self, topic: str, title: str, body: str, data: Optional[Dict[str, str]] = None
+        self,
+        topic: str,
+        title: str,
+        body: str,
+        data: Optional[Dict[str, str]] = None,
     ) -> bool:
         """
         Send a Firebase Cloud Message to a topic
@@ -102,7 +110,9 @@ class NotificationService:
         """
         try:
             response = messaging.subscribe_to_topic(token, topic)
-            print(f"Successfully subscribed to topic: {response.success_count} tokens")
+            print(
+                f"Successfully subscribed to topic: {response.success_count} tokens"
+            )
             return True
 
         except Exception as e:

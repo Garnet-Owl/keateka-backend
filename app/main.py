@@ -22,12 +22,18 @@ app.add_middleware(
 )
 
 # Add rate limiting to auth endpoints
-app.add_middleware(RateLimiter, times=5, seconds=60)  # 5 requests  # per minute
+app.add_middleware(
+    RateLimiter, times=5, seconds=60
+)  # 5 requests  # per minute
 
 
 @app.get("/")
 async def root() -> Dict[str, str]:
-    return {"message": "Welcome to KeaTeka API", "status": "active", "version": "1.0.0"}
+    return {
+        "message": "Welcome to KeaTeka API",
+        "status": "active",
+        "version": "1.0.0",
+    }
 
 
 @app.get("/health")

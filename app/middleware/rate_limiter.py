@@ -15,7 +15,9 @@ class RateLimiter:
         self.times = times
         self.seconds = seconds
 
-    async def __call__(self, request: Request, call_next: Callable) -> JSONResponse:
+    async def __call__(
+        self, request: Request, call_next: Callable
+    ) -> JSONResponse:
         # Get client IP
         ip = request.client.host
 
@@ -31,7 +33,9 @@ class RateLimiter:
         else:
             requests = int(requests)
             if requests >= self.times:
-                raise HTTPException(status_code=429, detail="Too many requests")
+                raise HTTPException(
+                    status_code=429, detail="Too many requests"
+                )
             redis_client.incr(key)
 
         response = await call_next(request)

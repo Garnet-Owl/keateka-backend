@@ -22,13 +22,17 @@ class Base:
     id = Column(Integer, primary_key=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
     )
 
     def dict(self) -> dict:
         """Convert model instance to dictionary"""
         return {
-            column.name: getattr(self, column.name) for column in self.__table__.columns
+            column.name: getattr(self, column.name)
+            for column in self.__table__.columns
         }
 
     def update(self, **kwargs):
