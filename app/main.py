@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime  # Add this import
+from datetime import datetime, timezone
 from typing import Dict
 
 from app.middleware.rate_limiter import RateLimiter
@@ -23,8 +23,10 @@ app.add_middleware(
 
 # Add rate limiting to auth endpoints
 app.add_middleware(
-    RateLimiter, times=5, seconds=60
-)  # 5 requests  # per minute
+    RateLimiter,
+    times=5,  # 5 requests
+    seconds=60,  # per minute
+)
 
 
 @app.get("/")
@@ -38,7 +40,14 @@ async def root() -> Dict[str, str]:
 
 @app.get("/health")
 async def health_check() -> Dict[str, str]:
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    current_time = datetime.now(timezone.utc)  # Compliant
+    return {"status": "healthy", "timestamp": current_time.isoformat()}
+
+
+# Example of handling Unix timestamps if needed
+def from_timestamp(timestamp: float) -> datetime:
+    """Convert Unix timestamp to timezone-aware datetime."""
+    return datetime.fromtimestamp(timestamp, timezone.utc)  # Compliant
 
 
 if __name__ == "__main__":

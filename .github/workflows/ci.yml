@@ -13,8 +13,8 @@ jobs:
       postgres:
         image: postgres:14
         env:
-          POSTGRES_USER: keateka
-          POSTGRES_PASSWORD: keateka123
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
           POSTGRES_DB: keateka_test
         ports:
           - 5432:5432
@@ -67,9 +67,9 @@ jobs:
 
     - name: Run tests
       env:
-        DATABASE_URL: postgresql://keateka:keateka123@localhost:5432/keateka_test
+        DATABASE_URL: postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@localhost:5432/keateka_test
         REDIS_URL: redis://localhost:6379/0
-        SECRET_KEY: test-secret-key
+        SECRET_KEY: ${{ secrets.TEST_SECRET_KEY }}
         ENVIRONMENT: test
       run: |
         poetry run pytest --cov=app --cov-report=xml

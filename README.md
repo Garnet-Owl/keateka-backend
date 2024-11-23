@@ -172,6 +172,20 @@ docker-compose up --build
 | `FIREBASE_CREDENTIALS_PATH` | Path to Firebase credentials JSON | Required |
 | `REDIS_URL` | Redis connection URL | `redis://localhost:6379/0` |
 
+
+## GitHub Actions Configuration
+
+The CI workflow requires the following secrets to be configured in GitHub:
+
+- `DB_USER`: PostgreSQL test database username
+- `DB_PASSWORD`: PostgreSQL test database password
+- `TEST_SECRET_KEY`: Secret key for test environment
+
+To configure these secrets:
+1. Go to your repository settings
+2. Navigate to Secrets and Variables > Actions
+3. Add the required secrets using the "New repository secret" button
+
 ## Contributing
 
 1. Fork the repository

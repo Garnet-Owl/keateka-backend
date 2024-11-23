@@ -15,15 +15,13 @@ ENV PYTHONUNBUFFERED=1 \
 # Add Poetry to PATH
 ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
 
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        curl \
+# Install system dependencies and Poetry in a single layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -c "import urllib.request; urllib.request.urlretrieve('https://install.python-poetry.org', 'poetry-installer.py')" \
+    && python3 poetry-installer.py \
+    && rm poetry-installer.py
 
 # Set working directory
 WORKDIR $PYSETUP_PATH
@@ -33,7 +31,8 @@ COPY poetry.lock pyproject.toml ./
 COPY app ./app
 
 # Install dependencies
-RUN poetry install --no-root --no-dev
+RUN poetry install --no-root --no-dev \
+    && rm -rf ~/.cache/pypoetry
 
 # Set up entrypoint
 COPY docker-entrypoint.sh /docker-entrypoint.sh
