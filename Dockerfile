@@ -18,6 +18,7 @@ ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
 # Install system dependencies and Poetry in a single layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
+        netcat-traditional \
     && rm -rf /var/lib/apt/lists/* \
     && python3 -c "import urllib.request; urllib.request.urlretrieve('https://install.python-poetry.org', 'poetry-installer.py')" \
     && python3 poetry-installer.py \
@@ -26,18 +27,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR $PYSETUP_PATH
 
-# Copy project files
-COPY poetry.lock pyproject.toml ./
-COPY app ./app
+# Copy dependency files first for better caching
+COPY pyproject.toml poetry.lock ./
 
-# Install dependencies
-RUN poetry install --no-root --no-dev \
-    && rm -rf ~/.cache/pypoetry
+# Install production dependencies
+RUN poetry install --no-root --no-dev
 
-# Set up entrypoint
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Copy the entrypoint script first and make it executable
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
+
+# Copy application code
+COPY . .
+
+# Clean up
+RUN rm -rf ~/.cache/pypoetry
 
 EXPOSE 8000
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

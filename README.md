@@ -4,63 +4,112 @@ KeaTeka is a cleaning service marketplace application designed for the Nairobi m
 
 ## Features
 
-- 🔐 User Authentication & Authorization
-- 📅 Job Scheduling & Management
-- 💰 M-PESA Integration
-- 🤝 Cleaner-Client Matching System
-- ⭐ Review & Rating System
-- 📱 Real-time Notifications
-- 📍 Location-based Services
+- 🔐 **Authentication & Authorization**: Secure JWT-based authentication system
+- 📅 **Job Management**:
+  - Sophisticated scheduling system
+  - Real-time time tracking
+  - Automated cleaner-client matching
+- 💰 **Payments**: Integrated M-PESA payment processing
+- 📍 **Location Services**:
+  - Real-time location tracking
+  - Route optimization
+  - ETA calculations
+- 📱 **Real-time Features**:
+  - WebSocket-based time tracking
+  - Live notifications
+  - Real-time location updates
+- ⭐ **Reviews & Ratings**: Comprehensive rating system for both cleaners and clients
 
 ## Tech Stack
 
 - **Framework:** FastAPI
-- **Database:** PostgreSQL
+- **Database:** PostgreSQL 14+
+- **Cache & Queue:** Redis 7
 - **ORM:** SQLAlchemy
 - **Migrations:** Alembic
 - **Authentication:** JWT
-- **Payment:** M-PESA
-- **Push Notifications:** Firebase Cloud Messaging
-- **Task Queue:** Celery (with Redis)
+- **Payment:** M-PESA API
+- **Notifications:** Firebase Cloud Messaging
+- **Maps:** Google Maps API
 - **Testing:** Pytest
 - **Documentation:** OpenAPI/Swagger
+- **Type Checking:** MyPy
+- **Linting:** Ruff, Black, Flake8
 
 ## Prerequisites
 
 - Python 3.12.6 or higher
-- Poetry for dependency management
+- Poetry 1.7.1 or higher
 - PostgreSQL 14+
-- Redis (for caching and task queue)
+- Redis 7+
 - Firebase Admin SDK credentials
 - M-PESA API credentials
+- Google Maps API key
+
+## Project Structure
+
+```
+keateka-backend/
+├── app/
+│   ├── features/               # Feature modules
+│   │   ├── auth/              # Authentication
+│   │   ├── jobs/              # Job management
+│   │   ├── location/          # Location services
+│   │   ├── payments/          # Payment processing
+│   │   ├── reviews/           # Rating system
+│   │   ├── notifications/     # Push notifications
+│   │   └── websockets/        # Real-time communication
+│   │
+│   ├── shared/                # Shared utilities
+│   │   ├── middleware/        # Custom middleware
+│   │   └── utils/            # Shared utilities
+│   │
+│   └── main.py               # Application entry
+│
+├── tests/
+│   ├── integration/          # Integration tests
+│   └── unit/                # Unit tests
+│
+└── config files...          # Various configuration files
+```
 
 ## Getting Started
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-org/keateka-backend.git
+git clone https://github.com/Garnet-Owl/keateka-backend.git
 cd keateka-backend
 ```
 
-2. **Install dependencies**
+2. **Install Poetry**
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+3. **Install dependencies**
 ```bash
 poetry install
 ```
 
-3. **Set up environment variables**
+4. **Set up environment variables**
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
-4. **Initialize the database**
+5. **Start services with Docker Compose**
+```bash
+docker-compose up -d postgres redis
+```
+
+6. **Initialize the database**
 ```bash
 poetry run alembic upgrade head
 ```
 
-5. **Run the development server**
+7. **Run the development server**
 ```bash
-poetry run python -m uvicorn app.main:app --reload
+poetry run uvicorn app.main:app --reload
 ```
 
 The API will be available at `http://localhost:8000`
@@ -69,34 +118,8 @@ The API will be available at `http://localhost:8000`
 
 ## Development
 
-### Project Structure
-```
-keateka-backend/
-├── app/
-│   ├── api/            # API endpoints
-│   ├── core/           # Core functionality
-│   ├── models/         # SQLAlchemy models
-│   ├── schemas/        # Pydantic schemas
-│   ├── services/       # Business logic
-│   └── utils/          # Utility functions
-├── tests/              # Test files
-├── migrations/         # Alembic migrations
-└── docs/              # Documentation
-```
+### Code Quality Tools
 
-### Running Tests
-```bash
-# Run all tests
-poetry run pytest
-
-# Run tests with coverage report
-poetry run pytest --cov=app tests/
-
-# Run specific test file
-poetry run pytest tests/test_specific_file.py
-```
-
-### Code Quality
 ```bash
 # Format code
 poetry run black .
@@ -106,22 +129,35 @@ poetry run ruff check .
 
 # Type checking
 poetry run mypy app
+
+# Run pre-commit hooks
+poetry run pre-commit run --all-files
+```
+
+### Testing
+
+```bash
+# Run all tests
+poetry run pytest
+
+# Run with coverage
+poetry run pytest --cov=app --cov-report=term-missing
+
+# Run specific feature tests
+poetry run pytest tests/integration/test_jobs.py
 ```
 
 ### Database Migrations
 
 ```bash
-# Create a new migration
+# Create migration
 poetry run alembic revision --autogenerate -m "description"
 
 # Apply migrations
 poetry run alembic upgrade head
 
-# Rollback last migration
+# Rollback
 poetry run alembic downgrade -1
-
-# Show migration history
-poetry run alembic history
 ```
 
 ## API Documentation
@@ -137,64 +173,67 @@ poetry run alembic history
 - GET `/api/v1/jobs/{job_id}` - Get job details
 - PUT `/api/v1/jobs/{job_id}` - Update job
 - DELETE `/api/v1/jobs/{job_id}` - Cancel job
+- WS `/api/v1/jobs/{job_id}/track` - Real-time time tracking
+
+### Location
+- POST `/api/v1/location/update` - Update location
+- GET `/api/v1/location/route` - Get optimal route
+- GET `/api/v1/location/eta` - Get ETA
 
 ### Payments
 - POST `/api/v1/payments/initiate` - Initiate M-PESA payment
 - POST `/api/v1/payments/confirm` - Confirm payment
 - GET `/api/v1/payments/status/{payment_id}` - Check payment status
 
-For complete API documentation, visit `/docs` endpoint after running the server.
+## Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection URL | Yes | `postgresql://keateka:keateka123@localhost:5432/keateka_db` |
+| `REDIS_URL` | Redis connection URL | Yes | `redis://localhost:6379/0` |
+| `SECRET_KEY` | JWT secret key | Yes | - |
+| `MPESA_CONSUMER_KEY` | M-PESA API consumer key | Yes | - |
+| `MPESA_CONSUMER_SECRET` | M-PESA API consumer secret | Yes | - |
+| `FIREBASE_CREDENTIALS_PATH` | Path to Firebase credentials | Yes | - |
+| `GOOGLE_MAPS_API_KEY` | Google Maps API key | Yes | - |
 
 ## Deployment
 
 ### Using Docker
+
 ```bash
-# Build the image
+# Build image
 docker build -t keateka-backend .
 
-# Run the container
+# Run container
 docker run -p 8000:8000 keateka-backend
 ```
 
 ### Using Docker Compose
+
 ```bash
+# Start all services
 docker-compose up --build
+
+# Start specific services
+docker-compose up -d postgres redis
 ```
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection URL | `postgresql://user:pass@localhost:5432/keateka` |
-| `SECRET_KEY` | JWT secret key | Required |
-| `MPESA_CONSUMER_KEY` | M-PESA API consumer key | Required |
-| `MPESA_CONSUMER_SECRET` | M-PESA API consumer secret | Required |
-| `FIREBASE_CREDENTIALS_PATH` | Path to Firebase credentials JSON | Required |
-| `REDIS_URL` | Redis connection URL | `redis://localhost:6379/0` |
-
-
-## GitHub Actions Configuration
-
-The CI workflow requires the following secrets to be configured in GitHub:
-
-- `DB_USER`: PostgreSQL test database username
-- `DB_PASSWORD`: PostgreSQL test database password
-- `TEST_SECRET_KEY`: Secret key for test environment
-
-To configure these secrets:
-1. Go to your repository settings
-2. Navigate to Secrets and Variables > Actions
-3. Add the required secrets using the "New repository secret" button
 
 ## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Run tests (`poetry run pytest`)
+4. Commit changes (`git commit -m 'feat(module): add some feature'`)
+5. Push to branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
-Please make sure to update tests as appropriate.
+Please ensure:
+- All tests pass
+- Code is formatted with Black
+- Type hints are added
+- Documentation is updated
+- Pre-commit hooks pass
 
 ## License
 
@@ -202,9 +241,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- Project Link: [https://github.com/Garnet-Owl/keateka-backend](https://github.com/Garnet-Owl/keateka-backend)
+- GitHub Issues: [https://github.com/Garnet-Owl/keateka-backend/issues](https://github.com/Garnet-Owl/keateka-backend/issues)
 - Documentation: [https://docs.keateka.com](https://docs.keateka.com)
 - Support: [support@keateka.com](mailto:support@keateka.com)
-
-
-![img.png](img.png)
