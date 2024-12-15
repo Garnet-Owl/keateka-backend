@@ -1,104 +1,165 @@
-from contextlib import asynccontextmanager
 import logging
-from typing import Callable
+import time
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Awaitable, Callable
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
+from starlette.responses import Response
 
 from app.features.auth.routes import router as auth_router
 from app.features.jobs.routes import (
     router as jobs_router,
     websocket_router as jobs_ws_router,
 )
+from app.features.location.routes import router as location_router
 from app.features.notifications.routes import router as notifications_router
+from app.features.payments.routes import router as payments_router
 from app.shared.config import settings
 from app.shared.database import DatabaseManager
 from app.shared.middleware.error_handler import setup_error_handlers
+from app.shared.middleware.request_id import RequestIDMiddleware
+from app.shared.middleware.timing import TimingMiddleware
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL), format=settings.LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan manager for startup and shutdown events."""
     logger.info("Starting up application...")
     try:
+        # Check database connection
         if not await DatabaseManager.check_connection():
             raise ConnectionError("Could not connect to database")
         logger.info("Database connection established successfully")
+
+        # Additional startup tasks could go here
+        logger.info("Application startup completed successfully")
         yield
-    except Exception:
-        logger.exception("Startup failed")
+
+    except Exception as e:
+        logger.exception("Startup failed: %s", str(e))
         raise
+
     finally:
         logger.info("Shutting down application...")
-        await DatabaseManager.close_connections()
+        try:
+            await DatabaseManager.close_connections()
+            logger.info("Database connections closed successfully")
+        except Exception as e:
+            logger.error("Error during cleanup: %s", str(e))
         logger.info("Cleanup completed")
 
 
-app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.VERSION,
-    description="KeaTeka Cleaning Service API",
-    lifespan=lifespan,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=settings.CORS_CREDENTIALS,
-    allow_methods=settings.CORS_METHODS,
-    allow_headers=settings.CORS_HEADERS,
-)
-
-setup_error_handlers(app)
+async def gzip_middleware(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    middleware = GZipMiddleware(app_=None)  # type: ignore
+    return await middleware(request, call_next)
 
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next: Callable) -> Response:
-    import time
-
+async def logging_middleware(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     start_time = time.time()
-    response = await call_next(request)
-    process_time = (time.time() - start_time) * 1000
+    request_id = getattr(request.state, "request_id", "unknown")
 
-    # Use string concatenation for long string
-    log_msg = (
-        "Method: %(method)s "
-        "Path: %(path)s "
-        "Status: %(status)s "
-        "Time: %(time).2fms"
+    logger.info("Request started | ID: %s | Method: %s | Path: %s", request_id, request.method, request.url.path)
+
+    try:
+        response = await call_next(request)
+        process_time = (time.time() - start_time) * 1000
+
+        logger.info(
+            "Request completed | ID: %s | Method: %s | Path: %s | Status: %s | Time: %.2fms",
+            request_id,
+            request.method,
+            request.url.path,
+            response.status_code,
+            process_time,
+        )
+
+        return response
+
+    except Exception as e:
+        logger.exception(
+            "Request failed | ID: %s | Method: %s | Path: %s | Error: %s",
+            request_id,
+            request.method,
+            request.url.path,
+            str(e),
+        )
+        raise
+
+
+def create_application() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    fast_app = FastAPI(
+        title=settings.APP_NAME,
+        version=settings.VERSION,
+        description="KeaTeka Cleaning Service API",
+        lifespan=lifespan,
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+        openapi_url="/api/openapi.json",
     )
-    logger.info(
-        log_msg,
-        {
-            "method": request.method,
-            "path": request.url.path,
-            "status": response.status_code,
-            "time": process_time,
-        },
+
+    # Add CORS middleware
+    fast_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=settings.CORS_CREDENTIALS,
+        allow_methods=settings.CORS_METHODS,
+        allow_headers=settings.CORS_HEADERS,
     )
-    return response
+
+    # Add other middlewares
+    fast_app.middleware("http")(gzip_middleware)
+    fast_app.middleware("http")(logging_middleware)
+
+    # Add request ID and timing middlewares
+    fast_app.add_middleware(RequestIDMiddleware)
+    fast_app.add_middleware(TimingMiddleware)
+
+    # Setup error handlers
+    setup_error_handlers(fast_app)
+
+    return fast_app
+
+
+app = create_application()
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> JSONResponse:
+    """Health check endpoint for monitoring."""
     db_healthy = await DatabaseManager.check_connection()
-    return {
-        "status": "healthy" if db_healthy else "unhealthy",
+
+    status = "healthy" if db_healthy else "unhealthy"
+    status_code = 200 if db_healthy else 503
+
+    response_data = {
+        "status": status,
         "database": "connected" if db_healthy else "disconnected",
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
+        "timestamp": time.time(),
     }
 
+    return JSONResponse(content=response_data, status_code=status_code)
 
-app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
-app.include_router(jobs_router, prefix=settings.API_V1_PREFIX)
-app.include_router(jobs_ws_router, prefix=settings.API_V1_PREFIX)
-app.include_router(notifications_router, prefix=settings.API_V1_PREFIX)
+
+# API Routes
+api_v1_prefix = settings.API_V1_PREFIX
+
+# Core feature routers
+app.include_router(auth_router, prefix=api_v1_prefix)
+app.include_router(jobs_router, prefix=api_v1_prefix)
+app.include_router(jobs_ws_router, prefix=api_v1_prefix)
+app.include_router(notifications_router, prefix=api_v1_prefix)
+app.include_router(payments_router, prefix=api_v1_prefix)
+app.include_router(location_router, prefix=api_v1_prefix)
 
 
 @app.get("/")
@@ -110,6 +171,8 @@ async def root() -> dict:
         "environment": settings.ENVIRONMENT,
         "docs_url": "/api/docs",
         "redoc_url": "/api/redoc",
+        "openapi_url": "/api/openapi.json",
+        "health_check": "/health",
     }
 
 
@@ -122,4 +185,6 @@ if __name__ == "__main__":
         port=settings.PORT,
         reload=settings.RELOAD,
         workers=settings.WORKERS,
+        log_level=settings.LOG_LEVEL.lower(),
+        access_log=True,
     )

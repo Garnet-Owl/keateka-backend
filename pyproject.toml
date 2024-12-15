@@ -28,6 +28,7 @@ pytest = "^8.3.3"
 pyhamcrest = "^2.1.0"
 injector = "^0.22.0"
 googlemaps = "^4.10.0"
+httpx = "^0.28.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
