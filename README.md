@@ -35,13 +35,12 @@ KeaTeka is a cleaning service marketplace application designed for the Nairobi m
 - **Documentation:** OpenAPI/Swagger
 - **Type Checking:** MyPy
 - **Linting:** Ruff, Black, Flake8
+- **Containerization:** Docker & Docker Compose
 
 ## Prerequisites
 
-- Python 3.12.6 or higher
-- Poetry 1.7.1 or higher
-- PostgreSQL 14+
-- Redis 7+
+- Docker & Docker Compose
+- Make (optional, for using Makefile commands)
 - Firebase Admin SDK credentials
 - M-PESA API credentials
 - Google Maps API key
@@ -73,7 +72,7 @@ keateka-backend/
 └── config files...          # Various configuration files
 ```
 
-## Getting Started
+## Getting Started with Docker
 
 1. **Clone the repository**
 ```bash
@@ -81,40 +80,101 @@ git clone https://github.com/Garnet-Owl/keateka-backend.git
 cd keateka-backend
 ```
 
-2. **Install Poetry**
+2. **Create environment file**
+```bash
+cp .env.example .env
+```
+Add the following required variables to `.env`:
+```
+POSTGRES_PASSWORD=your_secure_password_here
+```
+
+3. **Development Setup**
+```bash
+# Start services and show API logs
+make up
+
+# Or start only DB and Redis in background
+make dev-services
+```
+
+4. **Run database migrations**
+```bash
+make migrate      # For main database
+make migrate-test # For test database
+```
+
+5. **Testing Setup**
+```bash
+# Run tests with logs
+make test
+
+# Or start only test services in background
+make test-services
+```
+
+The API will be available at:
+- API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+- Alternative API docs: http://localhost:8000/redoc
+
+Database access:
+- Main DB: localhost:5432 (keateka_db)
+- Test DB: localhost:5433 (keateka_test_db)
+
+### Additional Docker Commands
+
+```bash
+# Stop all services
+make down
+
+# View specific logs
+make logs        # View API logs
+make logs-test   # View test database logs
+
+# Start specific services
+make dev-services   # Start DB and Redis for development
+make test-services  # Start test-DB and Redis for testing
+
+# Rebuild containers
+make build
+
+# Clean up volumes and containers
+make clean
+
+# Access container shell
+make shell
+```
+
+## Alternative Setup (Local Development)
+
+If you prefer to run services locally without Docker:
+
+1. **Install Poetry**
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-3. **Install dependencies**
+2. **Install dependencies**
 ```bash
 poetry install
 ```
 
-4. **Set up environment variables**
+3. **Set up environment variables**
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
-5. **Start services with Docker Compose**
-```bash
-docker-compose up -d postgres redis
-```
-
-6. **Initialize the database**
+4. **Initialize the database**
 ```bash
 poetry run alembic upgrade head
 ```
 
-7. **Run the development server**
+5. **Run the development server**
 ```bash
 poetry run uvicorn app.main:app --reload
 ```
-
-The API will be available at `http://localhost:8000`
-- API Documentation: `http://localhost:8000/docs`
-- Alternative API docs: `http://localhost:8000/redoc`
 
 ## Development
 
@@ -189,6 +249,7 @@ poetry run alembic downgrade -1
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
+| `POSTGRES_PASSWORD` | PostgreSQL password | Yes | - |
 | `DATABASE_URL` | PostgreSQL connection URL | Yes | `postgresql://keateka:keateka123@localhost:5432/keateka_db` |
 | `REDIS_URL` | Redis connection URL | Yes | `redis://localhost:6379/0` |
 | `SECRET_KEY` | JWT secret key | Yes | - |
@@ -197,33 +258,11 @@ poetry run alembic downgrade -1
 | `FIREBASE_CREDENTIALS_PATH` | Path to Firebase credentials | Yes | - |
 | `GOOGLE_MAPS_API_KEY` | Google Maps API key | Yes | - |
 
-## Deployment
-
-### Using Docker
-
-```bash
-# Build image
-docker build -t keateka-backend .
-
-# Run container
-docker run -p 8000:8000 keateka-backend
-```
-
-### Using Docker Compose
-
-```bash
-# Start all services
-docker-compose up --build
-
-# Start specific services
-docker-compose up -d postgres redis
-```
-
 ## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`poetry run pytest`)
+3. Run tests (`make test` or `poetry run pytest`)
 4. Commit changes (`git commit -m 'feat(module): add some feature'`)
 5. Push to branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request

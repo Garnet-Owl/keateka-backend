@@ -2,10 +2,10 @@
 set -e
 
 # Add application directory to Python path
-export PYTHONPATH=$PYTHONPATH:/opt/pysetup
+export PYTHONPATH="$PYTHONPATH":/app
 
 # Wait for postgres
-until nc -z -v -w30 postgres 5432
+until nc -z -v -w30 db 5432
 do
   echo "Waiting for postgres database connection..."
   sleep 2
@@ -20,18 +20,17 @@ do
 done
 echo "Redis is ready!"
 
-# Initialize alembic if it hasn't been initialized
-if [ ! -f "migrations/env.py" ]; then
-    echo "Initializing alembic..."
-    poetry run alembic init migrations
-    # Copy our env.py over the default one
-    cp app/migrations/env.py migrations/env.py
-fi
-
 # Run migrations
 echo "Running database migrations..."
-poetry run alembic upgrade head
+poetry run alembic upgrade head || {
+    echo "Migration failed!"
+    exit 1
+}
 
 # Start the application
 echo "Starting FastAPI application..."
-exec poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+if [ "$RELOAD" = "True" ] || [ "$RELOAD" = "true" ]; then
+    exec poetry run uvicorn app.main:app --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}" --reload
+else
+    exec poetry run uvicorn app.main:app --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}"
+fi
