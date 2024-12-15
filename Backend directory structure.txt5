@@ -1,0 +1,161 @@
+keateka-backend/
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   └── workflows/
+│       ├── ci.yml
+│       └── pull_request_template.md
+├── app/
+│   ├── __init__.py
+│   ├── shared/                  # Shared utilities and middleware
+│   │   ├── __init__.py
+│   │   ├── middleware/
+│   │   │   ├── __init__.py
+│   │   │   ├── rate_limiter.py
+│   │   │   ├── error_handler.py
+│   │   │   └── websocket.py    # WebSocket middleware
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── exceptions.py
+│   │   └── utils/
+│   │       ├── __init__.py
+│   │       ├── cache.py
+│   │       ├── security.py
+│   │       └── time.py         # Time utilities
+│   │
+│   ├── features/               # Feature modules
+│   │   ├── __init__.py
+│   │   │
+│   │   ├── auth/              # Authentication feature
+│   │   │   ├── __init__.py
+│   │   │   ├── core.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   ├── service.py
+│   │   │   ├── security.py
+│   │   │   ├── dependencies.py
+│   │   │   └── routes.py
+│   │   │
+│   │   ├── jobs/              # Jobs feature
+│   │   │   ├── __init__.py
+│   │   │   ├── core.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   ├── service.py
+│   │   │   ├── matching.py
+│   │   │   ├── time_tracking.py  # Time tracking logic
+│   │   │   ├── dependencies.py
+│   │   │   └── routes.py
+│   │   │
+│   │   ├── location/          # Location feature
+│   │   │   ├── __init__.py
+│   │   │   ├── core.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   ├── service.py
+│   │   │   ├── maps.py        # Google Maps integration
+│   │   │   ├── routing.py     # Route calculation
+│   │   │   └── routes.py
+│   │   │
+│   │   ├── payments/          # Payments feature
+│   │   │   ├── __init__.py
+│   │   │   ├── core.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   ├── service.py
+│   │   │   ├── mpesa.py
+│   │   │   ├── dependencies.py
+│   │   │   └── routes.py
+│   │   │
+│   │   ├── reviews/           # Reviews feature
+│   │   │   ├── __init__.py
+│   │   │   ├── core.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   ├── service.py
+│   │   │   └── routes.py
+│   │   │
+│   │   ├── notifications/     # Notifications feature
+│   │   │   ├── __init__.py
+│   │   │   ├── core.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   ├── service.py
+│   │   │   ├── firebase.py
+│   │   │   └── routes.py
+│   │   │
+│   │   └── websockets/        # WebSocket feature
+│   │       ├── __init__.py
+│   │       ├── core.py
+│   │       ├── models.py
+│   │       ├── schemas.py
+│   │       ├── service.py
+│   │       ├── manager.py     # WebSocket connection manager
+│   │       └── routes.py
+│   │
+│   └── main.py               # Application entry point
+│
+├── docs/
+│   ├── api/
+│   │   └── openapi.yaml
+│   ├── deployment/
+│   │   └── k8s/              # Kubernetes configs
+│   └── infrastructure/
+│       ├── websocket.md      # WebSocket architecture docs
+│       ├── Job Creation and Payment Flow
+│       ├── Project Directory Structure
+│       └── KeaTeka System Architecture
+│
+├── infrastructure/
+│   ├── docker/k8s/
+│   └── __init__.py
+│
+├── migrations/
+│   ├── versions/
+│   └── env.py
+│
+├── scripts/
+│   └── __init__.py
+│
+├── tests/
+│   ├── integration/
+│   │   ├── __init__.py
+│   │   ├── test_jobs.py
+│   │   ├── test_location.py
+│   │   ├── test_time_tracking.py
+│   │   └── test_websockets.py
+│   ├── unit/
+│   │   ├── __init__.py
+│   │   ├── test_maps.py
+│   │   ├── test_routing.py
+│   │   ├── test_time_tracking.py
+│   │   ├── test_auth_service.py
+│   │   ├── test_exceptions.py
+│   │   └── test_jobs_service.py
+│   ├── shared/
+│   │   ├── __init__.py
+│   │   └── utils.py
+│   ├── steps/
+│   │   ├── __init__.py
+│   │   └── steps_core.py
+│   ├── __init__.py
+│   ├── core.py
+│   ├── conftest.py
+│   └── givenpy.py
+│
+├── venv/
+│   └── library root/
+│
+├── .dockerignore
+├── .env
+├── .env.example
+├── .flake8
+├── .gitignore
+├── .pre-commit-config.yaml
+├── alembic.ini
+├── docker-compose.yml
+├── Dockerfile
+├── docker-entrypoint.sh
+├── pyproject.toml
+├── pytest.ini
+├── Makefile
+└── README.md

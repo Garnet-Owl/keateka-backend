@@ -2,22 +2,22 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:14
+        image: postgres:14-alpine
         env:
-          POSTGRES_USER: ${{ secrets.DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          POSTGRES_DB: keateka_test
+          POSTGRES_USER: keateka
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: keateka_test_db
         ports:
-          - 5432:5432
+          - 5433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -25,7 +25,7 @@ jobs:
           --health-retries 5
 
       redis:
-        image: redis:7
+        image: redis:7-alpine
         ports:
           - 6379:6379
         options: >-
@@ -35,47 +35,39 @@ jobs:
           --health-retries 5
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12.6'
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12.6"
+          cache: "pip"
 
-    - name: Install Poetry
-      run: |
-        curl -sSL https://install.python-poetry.org | python3 -
-        poetry config virtualenvs.create false
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          poetry config virtualenvs.create false
 
-    - name: Install dependencies
-      run: poetry install
+      - name: Install dependencies
+        run: poetry install
 
-    - name: Run linting
-      run: |
-        # Check if there are any Python files to lint
-        FILES_FOUND=$(find ./app ./tests -type f -name '*.py' | wc -l)
-        if [ "$FILES_FOUND" -eq "0" ]; then
-          echo "No Python files to lint."
-          exit 0
-        fi
+      - name: Run linting and formatting
+        run: |
+          poetry run ruff format ./app ./tests
+          poetry run ruff check ./app ./tests
+          poetry run ruff format --check ./app ./tests
 
-        # Run linters
-        poetry run black ./app ./tests --check
-        poetry run flake8 ./app ./tests
-        poetry run isort ./app ./tests --check-only
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://keateka:postgres@localhost:5433/keateka_test_db
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: "test-secret-key-for-ci"
+          ENVIRONMENT: test
+        run: |
+          poetry run pytest --cov=app --cov-report=xml
 
-    - name: Run tests
-      env:
-        DATABASE_URL: postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@localhost:5432/keateka_test
-        REDIS_URL: redis://localhost:6379/0
-        SECRET_KEY: ${{ secrets.TEST_SECRET_KEY }}
-        ENVIRONMENT: test
-      run: |
-        poetry run pytest --cov=app --cov-report=xml
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: true
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true

@@ -3,68 +3,17 @@ repos:
     rev: v5.0.0
     hooks:
     -   id: trailing-whitespace
-        stages: [pre-commit]
     -   id: end-of-file-fixer
-        stages: [pre-commit]
     -   id: check-yaml
-        stages: [pre-commit]
     -   id: check-added-large-files
-        stages: [pre-commit]
 
--   repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-    -   id: black
-        name: black
-        entry: poetry run black . --line-length 79
-        language: system
-        types: [python]
-        stages: [pre-commit]
-
--   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.8.0
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.3
     hooks:
     -   id: ruff
-        args: [--fix]
-        stages: [pre-commit]
-
-#-   repo: https://github.com/pre-commit/mirrors-mypy
-#    rev: v1.13.0
-#    hooks:
-#    -   id: mypy
-#        name: mypy
-#        language: python
-#        entry: mypy
-#        types: [python]
-#        require_serial: true
-#        additional_dependencies:
-#            - types-requests>=2.31.0.10
-#            - types-python-dateutil>=2.8.19.14
-#            - types-pytz>=2023.3.1.1
-#            - types-setuptools>=68.2.0.1
-#            - pydantic>=2.5.2
-#            - sqlalchemy>=2.0.25
-#            - alembic>=1.13.1
-#            - fastapi>=0.110.0
-#            - python-jose>=3.3.0
-#            - passlib>=1.7.4
-#            - redis>=5.0.1
-#            - firebase-admin>=6.4.0
-#        files: ^app/.*\.py$
-#        exclude: ^(tests|migrations|alembic)/.*$
-#        args: [
-#            "--ignore-missing-imports",
-#            "--disallow-untyped-defs",
-#            "--disallow-incomplete-defs",
-#            "--check-untyped-defs",
-#            "--disallow-untyped-decorators",
-#            "--no-implicit-optional",
-#            "--warn-redundant-casts",
-#            "--warn-unused-ignores",
-#            "--warn-no-return",
-#            "--warn-unreachable",
-#            "--strict-optional",
-#            "--show-error-codes",
-#            "--no-error-summary"
-#        ]
-#        stages: [pre-commit]
+        args: [
+            --fix,
+            --unsafe-fixes,  # Added unsafe fixes
+            --exit-non-zero-on-fix,  # Ensures the hook fails if files were modified
+        ]
+    -   id: ruff-format
