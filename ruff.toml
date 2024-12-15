@@ -1,101 +1,12 @@
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-]
-
-# Set line length and target version
-line-length = 79
-target-version = "py38"
+line-length = 120
+exclude = ["notebooks/"]
 
 [format]
-# Use double quotes for strings.
 quote-style = "double"
-# Indent with spaces, rather than tabs.
-indent-style = "space"
-line-ending = "lf"
+exclude = ["notebooks/"]
 
 [lint]
-# Enable specific rules while ignoring unnecessary ones
-select = ["ALL"]
-ignore = [
-    "D",        # documentation
-    "N999",     # invalid module name
-    "TRY003",   # long exception messages
-    "TRY301",   # abstract raise
-    "EM101",    # string literal in exceptions
-    "ANN401",   # dynamic typing with Any
-    "RET504",   # unnecessary assignment before return
-    "ANN201",   # missing return type annotation
-    "COM812",   # missing trailing comma
-    "ISC001",    # implicit string concatenation
-    "S104",   # Ignore S104
-    "ANN204",
-    "TRY300",
-    "G004",
-    "TRY401",
-    "N818",
-    "ANN001",
-    "FA100",
-    "ANN202",
-    "ANN002",
-    "ANN003",
-    "SLF001",
-    "RUF012",
-    "DTZ007",
-    "PLR2004",
-    "S101",
-    "INP001",
-    "SIM117",
-]
+extend-select = ["I"]
+ignore = ["I001", "I002"]  # Ignore specific import sorting issues
 
-# Enable fixing specifically for line length
-extend-fixable = ["E501"]
-
-[lint.per-file-ignores]
-"__init__.py" = ["F401"]
-
-"app/shared/config.py" = ["N802"]  # Allow uppercase properties in config
-"app/shared/utils/cache.py" = ["S301"]  # Allow pickle for internal cache usage
-"app/shared/utils/exceptions.py" = ["S101"]  # Allow string concatenation for exceptions
-
-[lint.flake8-annotations]
-mypy-init-return = true
-suppress-none-returning = true
-
-[lint.isort]
-# Import sorting configuration
-known-first-party = ["app"]
-known-third-party = ["pytest"]
-combine-as-imports = true
-force-sort-within-sections = true
-
-[lint.flake8-quotes]
-docstring-quotes = "double"
-inline-quotes = "double"
-
-[lint.pydocstyle]
-convention = "google"
-
-# Additional PEP 8 configuration
-[lint.pycodestyle]
-max-line-length = 88
+exclude = ["notebooks/"]
