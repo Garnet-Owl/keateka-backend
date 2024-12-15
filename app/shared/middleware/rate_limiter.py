@@ -9,25 +9,17 @@ from redis import Redis
 class RateLimiter:
     """Rate limiter using Redis as backend."""
 
-    def __init__(
-        self, redis_client: Redis, key_prefix: str = "rate_limit"
-    ) -> None:
+    def __init__(self, redis_client: Redis, key_prefix: str = "rate_limit") -> None:
         self.redis = redis_client
         self.key_prefix = key_prefix
 
-    async def _generate_key(
-        self, request: Request, key_type: str = "ip"
-    ) -> str:
+    async def _generate_key(self, request: Request, key_type: str = "ip") -> str:
         """Generate a unique key for rate limiting."""
         if key_type == "ip":
             key = request.client.host
         elif key_type == "user":
             # Assume user ID is in request state after auth
-            key = (
-                str(request.state.user_id)
-                if hasattr(request.state, "user_id")
-                else request.client.host
-            )
+            key = str(request.state.user_id) if hasattr(request.state, "user_id") else request.client.host
         else:
             key = request.client.host
 
@@ -101,9 +93,7 @@ def rate_limit(
                 )
 
             limiter = RateLimiter(redis_client)
-            is_limited = await limiter.is_rate_limited(
-                request, limit, window, key_type
-            )
+            is_limited = await limiter.is_rate_limited(request, limit, window, key_type)
 
             if is_limited:
                 raise HTTPException(

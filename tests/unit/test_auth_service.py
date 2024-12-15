@@ -17,9 +17,7 @@ def prepare_auth_service():
     def step(context):
         context.async_session = AsyncMock()
         context.cache_manager = AsyncMock()
-        context.auth_service = AuthService(
-            context.async_session, context.cache_manager
-        )
+        context.auth_service = AuthService(context.async_session, context.cache_manager)
 
     return step
 
@@ -88,26 +86,16 @@ def prepare_token_data():
 class TestAuthService:
     async def test_create_user_with_valid_data_succeeds(self):
         """Test successful user creation with valid data."""
-        with given(
-            [prepare_auth_service(), prepare_user_data(), prepare_mock_db()]
-        ) as context:
+        with given([prepare_auth_service(), prepare_user_data(), prepare_mock_db()]) as context:
             with when("creating a new user with valid data"):
-                user = await context.auth_service.create_user(
-                    context.user_create
-                )
+                user = await context.auth_service.create_user(context.user_create)
 
             with then("the user should be created successfully"):
                 assert_that(user, not_none())
                 assert_that(user.email, equal_to(context.user_data["email"]))
-                assert_that(
-                    user.full_name, equal_to(context.user_data["full_name"])
-                )
-                assert_that(
-                    context.async_session.commit.await_count, equal_to(1)
-                )
-                assert_that(
-                    context.async_session.refresh.await_count, equal_to(1)
-                )
+                assert_that(user.full_name, equal_to(context.user_data["full_name"]))
+                assert_that(context.async_session.commit.await_count, equal_to(1))
+                assert_that(context.async_session.refresh.await_count, equal_to(1))
 
     async def test_create_user_with_existing_email_fails(self):
         """Test user creation fails when email already exists."""
@@ -156,12 +144,8 @@ class TestAuthService:
 
             with (
                 when("generating tokens for the user"),
-                patch(
-                    "app.features.auth.security.create_access_token"
-                ) as mock_access,
-                patch(
-                    "app.features.auth.security.create_refresh_token"
-                ) as mock_refresh,
+                patch("app.features.auth.security.create_access_token") as mock_access,
+                patch("app.features.auth.security.create_refresh_token") as mock_refresh,
             ):
                 mock_access.return_value = context.token_data["access"]
                 mock_refresh.return_value = context.token_data["refresh"]
@@ -177,9 +161,7 @@ class TestAuthService:
                     equal_to(context.token_data["refresh"]["token"]),
                 )
                 assert_that(tokens["token_type"], equal_to("bearer"))
-                assert_that(
-                    context.async_session.commit.await_count, equal_to(1)
-                )
+                assert_that(context.async_session.commit.await_count, equal_to(1))
 
     async def test_refresh_tokens_with_valid_refresh_token_succeeds(self):
         """Test successful token refresh with valid refresh token."""
@@ -193,32 +175,20 @@ class TestAuthService:
         ) as context:
             with (
                 when("refreshing tokens"),
-                patch(
-                    "app.features.auth.security.decode_token"
-                ) as mock_decode,
+                patch("app.features.auth.security.decode_token") as mock_decode,
             ):
                 mock_decode.return_value = {"sub": "1", "type": "refresh"}
 
-                with patch.object(
-                    context.auth_service, "create_tokens"
-                ) as mock_create:
+                with patch.object(context.auth_service, "create_tokens") as mock_create:
                     mock_create.return_value = {
                         "access_token": "new_access_token",
                         "refresh_token": "new_refresh_token",
                         "token_type": "bearer",
                         "expires_in": 3600,
                     }
-                    new_tokens = await context.auth_service.refresh_tokens(
-                        "valid_refresh_token"
-                    )
+                    new_tokens = await context.auth_service.refresh_tokens("valid_refresh_token")
 
             with then("should return new valid tokens"):
-                assert_that(
-                    new_tokens["access_token"], equal_to("new_access_token")
-                )
-                assert_that(
-                    new_tokens["refresh_token"], equal_to("new_refresh_token")
-                )
-                assert_that(
-                    context.async_session.commit.await_count, equal_to(1)
-                )
+                assert_that(new_tokens["access_token"], equal_to("new_access_token"))
+                assert_that(new_tokens["refresh_token"], equal_to("new_refresh_token"))
+                assert_that(context.async_session.commit.await_count, equal_to(1))

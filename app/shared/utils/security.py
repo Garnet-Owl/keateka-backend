@@ -14,11 +14,7 @@ class SecurityUtils:
 
     def __init__(self, secret_key: str) -> None:
         self.secret_key = secret_key
-        self.fernet = Fernet(
-            base64.urlsafe_b64encode(
-                hashlib.sha256(secret_key.encode()).digest()
-            )
-        )
+        self.fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(secret_key.encode()).digest()))
 
     def encrypt_data(self, data: str) -> str:
         """
@@ -147,9 +143,7 @@ class CSPConfig:
             "form-action": ["'self'"],
         }
 
-        return "; ".join(
-            f"{key} {' '.join(values)}" for key, values in directives.items()
-        )
+        return "; ".join(f"{key} {' '.join(values)}" for key, values in directives.items())
 
     @staticmethod
     def get_strict_policy() -> str:
@@ -167,9 +161,7 @@ class CSPConfig:
             "object-src": ["'none'"],
         }
 
-        return "; ".join(
-            f"{key} {' '.join(values)}" for key, values in directives.items()
-        )
+        return "; ".join(f"{key} {' '.join(values)}" for key, values in directives.items())
 
 
 # Security Headers Configuration
@@ -271,9 +263,7 @@ class FileUploadSecurity:
         if not SecurityUtils.validate_file_size(file_size, max_size):
             return False
 
-        if allowed_types and not SecurityUtils.validate_file_type(
-            content_type, allowed_types
-        ):
+        if allowed_types and not SecurityUtils.validate_file_type(content_type, allowed_types):
             return False
 
         sanitized_filename = SecurityUtils.sanitize_filename(filename)

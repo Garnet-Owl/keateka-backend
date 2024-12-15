@@ -56,9 +56,7 @@ class CacheManager:
             if isinstance(expires_in, timedelta):
                 expires_in = int(expires_in.total_seconds())
 
-            return bool(
-                self.redis.set(self._get_key(key), serialized, ex=expires_in)
-            )
+            return bool(self.redis.set(self._get_key(key), serialized, ex=expires_in))
         except Exception as e:
             logger.exception(f"Error setting cache: {e!s}")
             return False

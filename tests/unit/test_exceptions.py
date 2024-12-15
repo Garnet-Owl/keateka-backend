@@ -126,9 +126,7 @@ class TestBaseAPIException:
 class TestAuthenticationError:
     def test_creates_with_custom_message_and_details(self):
         with given([prepare_auth_error_with_details()]) as context:
-            exception = AuthenticationError(
-                message=context.message, details=context.details
-            )
+            exception = AuthenticationError(message=context.message, details=context.details)
 
         with when("creating authentication error"):
             error_dict = exception.to_dict()
@@ -155,9 +153,7 @@ class TestAuthenticationError:
 class TestValidationError:
     def test_creates_with_field_validation_details(self):
         with given([prepare_validation_error()]) as context:
-            exception = ValidationError(
-                message=context.message, details=context.details
-            )
+            exception = ValidationError(message=context.message, details=context.details)
 
         with when("creating validation error"):
             error_dict = exception.to_dict()
@@ -184,9 +180,7 @@ class TestValidationError:
 class TestNotFoundException:
     def test_creates_with_resource_details(self):
         with given([prepare_not_found_details()]) as context:
-            exception = NotFoundException(
-                message=context.message, details=context.details
-            )
+            exception = NotFoundException(message=context.message, details=context.details)
 
         with when("creating not found error"):
             error_dict = exception.to_dict()
@@ -201,9 +195,7 @@ class TestNotFoundException:
 class TestExternalServiceError:
     def test_creates_with_service_failure_details(self):
         with given([prepare_service_error_details()]) as context:
-            exception = ExternalServiceError(
-                message=context.message, details=context.details
-            )
+            exception = ExternalServiceError(message=context.message, details=context.details)
 
         with when("creating external service error"):
             error_dict = exception.to_dict()
@@ -218,9 +210,7 @@ class TestExternalServiceError:
 class TestBusinessLogicError:
     def test_creates_with_business_rule_violation_details(self):
         with given([prepare_business_error_details()]) as context:
-            exception = BusinessLogicError(
-                message=context.message, details=context.details
-            )
+            exception = BusinessLogicError(message=context.message, details=context.details)
 
         with when("creating business logic error"):
             error_dict = exception.to_dict()

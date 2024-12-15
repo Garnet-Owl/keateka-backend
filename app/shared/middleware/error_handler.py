@@ -11,9 +11,7 @@ from app.shared.exceptions import BaseAPIException
 logger = logging.getLogger(__name__)
 
 
-async def error_handler(
-    request: Request, exc: HTTPException | BaseAPIException | Exception
-) -> JSONResponse:
+async def error_handler(request: Request, exc: HTTPException | BaseAPIException | Exception) -> JSONResponse:
     """
     Global error handler middleware for FastAPI application.
     Handles different types of exceptions and returns appropriate JSON responses.
