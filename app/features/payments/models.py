@@ -1,4 +1,5 @@
 from enum import Enum as PyEnum
+from typing import Any
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 
@@ -18,6 +19,10 @@ class PaymentProvider(str, PyEnum):
 
 
 class Payment(Base, TimestampMixin):
+    def __init__(self, **kw: Any):
+        super().__init__(kw)
+        self.completed_at = None
+
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, index=True)
