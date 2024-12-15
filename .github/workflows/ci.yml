@@ -51,8 +51,9 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Run linting and formatting checks
+      - name: Run linting and formatting
         run: |
+          poetry run ruff format ./app ./tests
           poetry run ruff check ./app ./tests
           poetry run ruff format --check ./app ./tests
 
