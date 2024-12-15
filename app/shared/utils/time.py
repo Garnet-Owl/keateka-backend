@@ -11,6 +11,20 @@ class TimeUtils:
     DEFAULT_TIMEZONE = "Africa/Nairobi"
 
     @staticmethod
+    def generate_timestamp(tz: Optional[str] = None) -> str:
+        """
+        Generate timestamp in the format required by M-PESA (YYYYMMddHHmmss).
+
+        Args:
+            tz: Optional timezone (defaults to Africa/Nairobi)
+
+        Returns:
+            str: Formatted timestamp string
+        """
+        current_time = TimeUtils.get_current_time(tz)
+        return current_time.strftime("%Y%m%d%H%M%S")
+
+    @staticmethod
     def get_current_time(tz: Optional[str] = None) -> datetime:
         """Get current time in specified timezone."""
         timezone = pytz.timezone(tz or TimeUtils.DEFAULT_TIMEZONE)
@@ -69,9 +83,7 @@ class TimeUtils:
         return dt.strftime(format_str or "%Y-%m-%d %H:%M:%S")
 
     @staticmethod
-    def get_day_boundaries(
-        dt: Optional[datetime] = None, tz: Optional[str] = None
-    ) -> Dict[str, datetime]:
+    def get_day_boundaries(dt: Optional[datetime] = None, tz: Optional[str] = None) -> Dict[str, datetime]:
         """Get start and end of day for given datetime."""
         if not dt:
             dt = TimeUtils.get_current_time(tz)
@@ -84,9 +96,7 @@ class TimeUtils:
         return {"start": start, "end": end}
 
     @staticmethod
-    def get_week_boundaries(
-        dt: Optional[datetime] = None, tz: Optional[str] = None
-    ) -> Dict[str, datetime]:
+    def get_week_boundaries(dt: Optional[datetime] = None, tz: Optional[str] = None) -> Dict[str, datetime]:
         """Get start and end of week for given datetime."""
         if not dt:
             dt = TimeUtils.get_current_time(tz)
@@ -100,9 +110,7 @@ class TimeUtils:
         return {"start": start, "end": end}
 
     @staticmethod
-    def get_month_boundaries(
-        dt: Optional[datetime] = None, tz: Optional[str] = None
-    ) -> Dict[str, datetime]:
+    def get_month_boundaries(dt: Optional[datetime] = None, tz: Optional[str] = None) -> Dict[str, datetime]:
         """Get start and end of month for given datetime."""
         if not dt:
             dt = TimeUtils.get_current_time(tz)
@@ -111,16 +119,12 @@ class TimeUtils:
 
         start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         last_day = calendar.monthrange(dt.year, dt.month)[1]
-        end = dt.replace(
-            day=last_day, hour=23, minute=59, second=59, microsecond=999999
-        )
+        end = dt.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
 
         return {"start": start, "end": end}
 
     @staticmethod
-    def calculate_duration(
-        start: datetime, end: Optional[datetime] = None, unit: str = "seconds"
-    ) -> Union[int, float]:
+    def calculate_duration(start: datetime, end: Optional[datetime] = None, unit: str = "seconds") -> Union[int, float]:
         """
         Calculate duration between two datetimes.
 
@@ -130,9 +134,7 @@ class TimeUtils:
             unit: Unit of duration ("seconds", "minutes", "hours", "days")
         """
         if not end:
-            end = TimeUtils.get_current_time(
-                start.tzinfo.zone if start.tzinfo else None
-            )
+            end = TimeUtils.get_current_time(start.tzinfo.zone if start.tzinfo else None)
 
         duration = end - start
 
