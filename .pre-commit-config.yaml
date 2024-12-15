@@ -8,8 +8,12 @@ repos:
     -   id: check-added-large-files
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.3  # Updated to latest stable version
+    rev: v0.8.3
     hooks:
     -   id: ruff
-        args: [--fix]  # Since other settings are in ruff.toml
+        args: [
+            --fix,
+            --unsafe-fixes,  # Added unsafe fixes
+            --exit-non-zero-on-fix,  # Ensures the hook fails if files were modified
+        ]
     -   id: ruff-format
