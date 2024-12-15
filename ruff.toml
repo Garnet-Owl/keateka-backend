@@ -63,6 +63,9 @@ ignore = [
     "RUF012",
     "DTZ007",
     "PLR2004",
+    "S101",
+    "INP001",
+    "SIM117",
 ]
 
 # Enable fixing specifically for line length
