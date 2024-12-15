@@ -1,0 +1,37 @@
+openapi: 3.1.0
+info:
+  title: KeaTeka API
+  version: 1.0.0
+  description: API documentation for KeaTeka backend services
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+paths:
+  /api/example:
+    get:
+      summary: Example endpoint
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+components:
+  schemas:
+    ExampleSchema:
+      type: object
+      properties:
+        id:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
