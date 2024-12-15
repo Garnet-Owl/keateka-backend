@@ -1,4 +1,4 @@
-.PHONY: up down test build logs clean migrate migrate-test shell dev-services test-services
+.PHONY: up down test build logs clean migrate migrate-test shell dev-services test-services lint format type-check security-check ci-checks
 
 # Development Environment
 dev-services:
@@ -45,3 +45,18 @@ migrate-test:
 
 shell:
 	docker compose exec api /bin/bash
+
+# New commands
+lint:
+	docker compose run --rm api poetry run flake8 .
+
+format:
+	docker compose run --rm api poetry run black .
+
+type-check:
+	docker compose run --rm api poetry run mypy .
+
+security-check:
+	docker compose run --rm api poetry run bandit -r .
+
+ci-checks: lint format type-check security-check test
