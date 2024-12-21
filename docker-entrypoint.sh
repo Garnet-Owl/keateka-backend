@@ -1,36 +1,23 @@
 #!/bin/sh
-set -e
 
-# Add application directory to Python path
-export PYTHONPATH="$PYTHONPATH":/app
-
-# Wait for postgres
-until nc -z -v -w30 db 5432
-do
-  echo "Waiting for postgres database connection..."
-  sleep 2
+# Wait for PostgreSQL
+while ! nc -z db 5432; do
+    echo "Waiting for PostgreSQL to start..."
+    sleep 1
 done
-echo "Database is ready!"
 
-# Wait for redis
-until nc -z -v -w30 redis 6379
-do
-  echo "Waiting for redis connection..."
-  sleep 2
+echo "PostgreSQL started"
+
+# Wait for Redis
+while ! nc -z redis 6379; do
+    echo "Waiting for Redis to start..."
+    sleep 1
 done
-echo "Redis is ready!"
 
-# Run migrations
-echo "Running database migrations..."
-poetry run alembic upgrade head || {
-    echo "Migration failed!"
-    exit 1
-}
+echo "Redis started"
 
-# Start the application
-echo "Starting FastAPI application..."
-if [ "$RELOAD" = "True" ] || [ "$RELOAD" = "true" ]; then
-    exec poetry run uvicorn app.main:app --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}" --reload
-else
-    exec poetry run uvicorn app.main:app --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}"
-fi
+# Apply database migrations
+alembic upgrade head
+
+# Start FastAPI application
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
