@@ -19,5 +19,5 @@ echo "Redis started"
 # Apply database migrations
 alembic upgrade head
 
-# Start FastAPI application
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# Start FastAPI application with hot reload
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app --reload-include "*.py,*.html,*.jinja,*.json,*.yaml,*.yml" --workers 1
