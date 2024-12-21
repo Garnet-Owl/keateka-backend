@@ -1,38 +1,22 @@
 import os
-from typing import AsyncGenerator, Generator
-
 import pytest
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    create_async_engine,
-)
-from sqlalchemy.orm import sessionmaker
-
-# Use test database URL
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"postgresql+asyncpg://keateka:{os.getenv('DB_PASSWORD')}@test-db:5432/keateka_test_db",
-)
 
 
-@pytest.fixture(scope="session")
-def engine() -> Generator[AsyncEngine, None, None]:
-    """Create and yield test database engine."""
-    engine = create_async_engine(DATABASE_URL)
-    yield engine
-    engine.dispose()
+def pytest_configure():
+    """Configure test environment before test collection."""
+    os.environ["ENVIRONMENT"] = "test"
+
+    # Force reload of settings for tests
+    from app.shared.config import init_settings
+
+    init_settings()
 
 
-@pytest.fixture
-async def db_session(
-    engine: AsyncEngine,
-) -> AsyncGenerator[AsyncSession, None]:
-    """Create and yield test database session."""
-    async_session = sessionmaker(
-        engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-    async with async_session() as session:
-        yield session
+@pytest.fixture(autouse=True)
+def test_environment():
+    """Ensure test environment for all tests."""
+    previous_env = os.getenv("ENVIRONMENT")
+    os.environ["ENVIRONMENT"] = "test"
+    yield
+    if previous_env is not None:
+        os.environ["ENVIRONMENT"] = previous_env
