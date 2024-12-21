@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import os
 from enum import Enum
 from functools import lru_cache
 from typing import List
@@ -182,9 +184,14 @@ class Settings(BaseSettings):
     SENTRY_DSN: str | None = None
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", ".env.test")
         case_sensitive = True
         use_enum_values = True
+
+    @classmethod
+    def get_test_settings(cls) -> "Settings":
+        """Get settings instance for testing."""
+        return cls(_env_file=".env.test", _env_file_encoding="utf-8")
 
     def is_development(self) -> bool:
         return self.ENVIRONMENT == Environment.DEVELOPMENT
@@ -202,17 +209,36 @@ class Settings(BaseSettings):
         return "https://sandbox.safaricom.co.ke"
 
 
+settings: Settings | None = None
+
+
+def init_settings():
+    """Initialize settings based on environment."""
+    global settings
+    if settings is None:
+        settings = get_settings()
+    return settings
+
+
 @lru_cache
 def get_settings() -> Settings:
-    """
-    Get cached settings instance.
-
-    Usage:
-        settings = get_settings()
-        database_url = settings.DATABASE_URL
-    """
+    """Get cached settings instance."""
+    if os.getenv("ENVIRONMENT") == "test":
+        return Settings(
+            API_BASE_URL="http://testserver",
+            DATABASE_URL="postgresql+asyncpg://keateka:2025_keateka_123@test-db:5432/keateka_test_db",
+            POSTGRES_PASSWORD="2025_keateka_123",
+            TEST_POSTGRES_PASSWORD="2025_keateka_123",
+            REDIS_URL="redis://redis:6379/1",
+            SECRET_KEY="test_secret_key",
+            MPESA_CONSUMER_KEY="test_consumer_key",
+            MPESA_CONSUMER_SECRET="test_consumer_secret",
+            MPESA_PASSKEY="test_passkey",
+            MPESA_BUSINESS_SHORTCODE="174379",
+            MPESA_INITIATOR_NAME="testapi",
+            MPESA_SECURITY_CREDENTIAL="test_credential",
+            GOOGLE_MAPS_API_KEY="test_maps_key",
+            ENVIRONMENT=Environment.TEST,
+            DEBUG=True,
+        )
     return Settings()
-
-
-# Create global settings instance
-settings = get_settings()

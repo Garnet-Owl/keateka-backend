@@ -1,32 +1,26 @@
-# tests/shared/utils.py
-import hashlib
-import logging
-from pathlib import Path
-from typing import BinaryIO
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+from app.shared.config import Settings, Environment
 
 
-def calculate_checksum(file_content: BinaryIO) -> str:
-    """Calculate checksum for file content."""
-    sha256 = hashlib.sha256()
-    for chunk in iter(lambda: file_content.read(4096), b""):
-        sha256.update(chunk)
-    return sha256.hexdigest()
-
-
-def verify_checksum(file_path: str, expected_checksum: str) -> bool:
-    """Verify file checksum matches expected value."""
-    sha256 = hashlib.sha256()
-    try:
-        with Path(file_path).open("rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                sha256.update(chunk)
-            file_checksum = sha256.hexdigest()
-    except Exception:
-        logger.exception("Error verifying checksum")
-        return False
-    else:
-        return file_checksum == expected_checksum
+def get_test_settings() -> Settings:
+    """Create Settings instance with test configuration."""
+    return Settings(
+        # Required settings with test values
+        API_BASE_URL="http://testserver",
+        # Use Docker test-db service
+        DATABASE_URL="postgresql+asyncpg://keateka:2025_keateka_123@test-db:5432/keateka_test_db",
+        REDIS_URL="redis://redis:6379/1",  # Use Redis container but different db number
+        # Other required settings...
+        POSTGRES_PASSWORD="2025_keateka_123",
+        TEST_POSTGRES_PASSWORD="2025_keateka_123",
+        SECRET_KEY="test_secret_key",
+        MPESA_CONSUMER_KEY="test_consumer_key",
+        MPESA_CONSUMER_SECRET="test_consumer_secret",
+        MPESA_PASSKEY="test_passkey",
+        MPESA_BUSINESS_SHORTCODE="174379",
+        MPESA_INITIATOR_NAME="testapi",
+        MPESA_SECURITY_CREDENTIAL="test_credential",
+        GOOGLE_MAPS_API_KEY="test_maps_key",
+        # Test-specific settings
+        ENVIRONMENT=Environment.TEST,
+        DEBUG=True,
+    )

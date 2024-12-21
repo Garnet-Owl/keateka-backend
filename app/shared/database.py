@@ -13,9 +13,11 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.pool import QueuePool
 
-from app.shared.config import settings
+from app.shared.config import init_settings
 
 logger = logging.getLogger(__name__)
+
+settings = init_settings()
 
 # Database URL constant
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
