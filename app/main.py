@@ -9,19 +9,19 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from starlette.responses import Response
 
-from app.features.auth.routes import router as auth_router
-from app.features.jobs.routes import (
+from app.api.auth.routes import router as auth_router
+from app.api.jobs.routes import (
     router as jobs_router,
     websocket_router as jobs_ws_router,
 )
-from app.features.location.routes import router as location_router
-from app.features.notifications.routes import router as notifications_router
-from app.features.payments.routes import router as payments_router
-from app.shared.config import settings
-from app.shared.database import DatabaseManager
-from app.shared.middleware.error_handler import setup_error_handlers
-from app.shared.middleware.request_id import RequestIDMiddleware
-from app.shared.middleware.timing import TimingMiddleware
+from app.api.location.routes import router as location_router
+from app.api.notifications.routes import router as notifications_router
+from app.api.payments.routes import router as payments_router
+from app.api.shared.config import settings
+from app.api.shared.database import DatabaseManager
+from app.api.shared.middleware.error_handler import setup_error_handlers
+from app.api.shared.middleware.request_id import RequestIDMiddleware
+from app.api.shared.middleware.timing import TimingMiddleware
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL), format=settings.LOG_FORMAT)
@@ -65,7 +65,12 @@ async def logging_middleware(request: Request, call_next: Callable[[Request], Aw
     start_time = time.time()
     request_id = getattr(request.state, "request_id", "unknown")
 
-    logger.info("Request started | ID: %s | Method: %s | Path: %s", request_id, request.method, request.url.path)
+    logger.info(
+        "Request started | ID: %s | Method: %s | Path: %s",
+        request_id,
+        request.method,
+        request.url.path,
+    )
 
     try:
         response = await call_next(request)
