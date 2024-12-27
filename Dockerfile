@@ -1,5 +1,5 @@
 # Use multi-stage build for better caching and smaller final image
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
