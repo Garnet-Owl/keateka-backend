@@ -6,7 +6,7 @@ keateka-backend/
 │       └── pull_request_template.md
 ├── app/
 │   ├── __init__.py
-│   ├── shared/                  # Shared utilities and middleware
+│   ├── api/shared/                  # Shared utilities and middleware
 │   │   ├── __init__.py
 │   │   ├── middleware/
 │   │   │   ├── __init__.py
@@ -22,7 +22,7 @@ keateka-backend/
 │   │       ├── security.py
 │   │       └── time.py         # Time utilities
 │   │
-│   ├── features/               # Feature modules
+│   ├── api/          # Feature modules
 │   │   ├── __init__.py
 │   │   │
 │   │   ├── auth/              # Authentication feature
@@ -94,29 +94,13 @@ keateka-backend/
 │   │
 │   └── main.py               # Application entry point
 │
-├── docs/
-│   ├── api/
-│   │   └── openapi.yaml
-│   ├── deployment/
-│   │   └── k8s/              # Kubernetes configs
-│   └── infrastructure/
-│       ├── websocket.md      # WebSocket architecture docs
-│       ├── Job Creation and Payment Flow
-│       ├── Project Directory Structure
-│       └── KeaTeka System Architecture
 │
-├── infrastructure/
-│   ├── docker/k8s/
-│   └── __init__.py
-│
-├── migrations/
+├── app/migrations/
 │   ├── versions/
 │   └── env.py
 │
-├── scripts/
-│   └── __init__.py
 │
-├── tests/
+├── app/tests/
 │   ├── integration/
 │   │   ├── __init__.py
 │   │   ├── test_jobs.py

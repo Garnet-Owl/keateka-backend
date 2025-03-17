@@ -1,5 +1,3 @@
-# tests/unit/test_jobs_service.py
-
 from datetime import datetime, UTC
 import pytest
 from unittest.mock import Mock

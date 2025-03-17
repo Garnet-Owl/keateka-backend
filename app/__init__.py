@@ -1,4 +1,4 @@
-from app.shared.config import init_settings
+from app.api.shared.config import init_settings
 
 # Initialize settings first
 settings = init_settings()
