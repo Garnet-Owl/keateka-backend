@@ -1,212 +1,240 @@
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from uuid import UUID
 
-from app.api.jobs import models, schemas
-from app.api.jobs.time_tracking import TimeTrackingManager
-from app.api.shared.exceptions import NotFoundException, BusinessLogicError
-from app.api.notifications.service import NotificationService
-from app.api.shared.utils.time import TimeUtils
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.jobs.models import Job, JobCreate, JobStatus, ScheduleSlot, ScheduleSlotCreate
+from app.api.jobs.repository import JobRepository
 
 
 class JobService:
-    def __init__(
-        self,
-        db: AsyncSession,
-        time_tracking_manager: Optional[TimeTrackingManager] = None,
-        notification_service: Optional[NotificationService] = None,
-    ):
-        self.db = db
-        self.time_tracking_manager = time_tracking_manager
-        self.notification_service = notification_service
+    def __init__(self, db_session: AsyncSession):
+        self.repository = JobRepository(db_session)
+        # Base rate per minute in KES
+        self.base_rate_per_minute = 4.50
 
-    async def create_job(self, job_data: schemas.JobCreate) -> models.Job:
-        """Create a new job."""
-        # Validate scheduled time
-        scheduled_time = TimeUtils.parse_datetime(job_data.scheduled_time)
-        if scheduled_time < TimeUtils.get_current_time():
-            raise BusinessLogicError("Cannot schedule job in the past")
+    async def create_job(self, job_data: JobCreate, client_id: UUID) -> Job:
+        # Calculate base cost based on estimated duration
+        base_cost = self._calculate_base_cost(job_data.estimated_duration_minutes)
 
-        job = models.Job(**job_data.dict())
-        self.db.add(job)
-        await self.db.commit()
-        await self.db.refresh(job)
+        # Create job entity
+        job = Job(
+            client_id=client_id,
+            address=job_data.address,
+            city=job_data.city,
+            latitude=job_data.latitude,
+            longitude=job_data.longitude,
+            description=job_data.description,
+            estimated_duration_minutes=job_data.estimated_duration_minutes,
+            base_cost=base_cost,
+            status=JobStatus.PENDING,
+        )
 
-        if self.notification_service:
-            await self.notification_service.send_notification(
-                user_id=job.client_id,
-                title="New Job Created",
-                body=f"Job scheduled for {scheduled_time.strftime('%Y-%m-%d %H:%M')}",
-                data={"job_id": job.id, "event": "job_created"},
-            )
+        return await self.repository.create_job(job)
 
-        return job
+    def _calculate_base_cost(self, duration_minutes: int) -> float:
+        """Calculate the base cost of a job based on estimated duration."""
+        return duration_minutes * self.base_rate_per_minute
 
-    async def get_job(self, job_id: int) -> Optional[models.Job]:
-        """Get job by ID."""
-        result = await self.db.execute(select(models.Job).filter(models.Job.id == job_id))
-        job = result.scalar_one_or_none()
-
+    async def get_job(self, job_id: UUID, include_slots: bool = False) -> Job:
+        """Get a job by its ID."""
+        job = await self.repository.get_job_by_id(job_id, include_slots)
         if not job:
-            raise NotFoundException(f"Job with id {job_id} not found")
+            raise HTTPException(status_code=404, detail="Job not found")
         return job
 
-    async def update_job(self, job_id: int, job_data: schemas.JobUpdate) -> models.Job:
-        """Update job details."""
-        job = await self.get_job(job_id)
+    async def get_client_jobs(
+        self, client_id: UUID, status: Optional[JobStatus] = None, limit: int = 50, offset: int = 0
+    ) -> Tuple[List[Job], int]:
+        """Get all jobs for a client, with optional status filter."""
+        return await self.repository.get_jobs_by_client(client_id=client_id, status=status, limit=limit, offset=offset)
 
-        # Validate status transition
-        if job_data.status:
-            await self._validate_status_transition(job, job_data.status)
+    async def get_cleaner_jobs(
+        self, cleaner_id: UUID, status: Optional[JobStatus] = None, limit: int = 50, offset: int = 0
+    ) -> Tuple[List[Job], int]:
+        """Get all jobs for a cleaner, with optional status filter."""
+        return await self.repository.get_jobs_by_cleaner(
+            cleaner_id=cleaner_id, status=status, limit=limit, offset=offset
+        )
 
-        # Update fields
-        for field, value in job_data.dict(exclude_unset=True).items():
-            setattr(job, field, value)
+    async def propose_schedule_slot(
+        self, job_id: UUID, slot_data: ScheduleSlotCreate, proposed_by_cleaner: bool
+    ) -> ScheduleSlot:
+        """Propose a time slot for a job."""
+        job = await self.repository.get_job_by_id(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
 
-        await self.db.commit()
-        await self.db.refresh(job)
+        # Validate job status
+        if job.status != JobStatus.PENDING and job.status != JobStatus.SCHEDULED:
+            raise HTTPException(status_code=400, detail=f"Cannot propose schedule for job with status {job.status}")
 
-        # Send notification if status changed
-        if job_data.status and self.notification_service:
-            await self.notification_service.send_notification(
-                user_id=job.client_id,
-                title="Job Status Updated",
-                body=f"Job status changed to {job_data.status}",
-                data={
-                    "job_id": job.id,
-                    "event": "status_changed",
-                    "status": job_data.status,
-                },
+        # Validate time slot
+        if slot_data.start_time < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Cannot propose a time slot in the past")
+
+        if slot_data.end_time <= slot_data.start_time:
+            raise HTTPException(status_code=400, detail="End time must be after start time")
+
+        # Calculate expected duration and verify it matches the job estimate
+        slot_duration = (slot_data.end_time - slot_data.start_time).total_seconds() / 60
+        if abs(slot_duration - job.estimated_duration_minutes) > 15:  # Allow 15 minutes flexibility
+            raise HTTPException(
+                status_code=400,
+                detail=f"Proposed slot duration ({slot_duration}min) doesn't match job estimate ({job.estimated_duration_minutes}min)",
             )
 
-        return job
+        # Create the slot
+        slot = ScheduleSlot(
+            job_id=job_id,
+            start_time=slot_data.start_time,
+            end_time=slot_data.end_time,
+            is_proposed_by_cleaner=proposed_by_cleaner,
+        )
 
-    async def delete_job(self, job_id: int) -> None:
-        """Delete a job."""
-        job = await self.get_job(job_id)
+        return await self.repository.add_schedule_slot(slot)
 
-        # Can only delete pending jobs
-        if job.status != models.JobStatus.PENDING:
-            raise BusinessLogicError("Only pending jobs can be deleted")
+    async def accept_schedule_slot(self, job_id: UUID, slot_id: UUID, client_id: UUID, cleaner_id: UUID) -> Job:
+        """Accept a proposed time slot and assign the cleaner to the job."""
+        job = await self.repository.get_job_by_id(job_id, include_slots=True)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
 
-        await self.db.delete(job)
-        await self.db.commit()
+        # Verify client ownership
+        if job.client_id != client_id:
+            raise HTTPException(status_code=403, detail="Not authorized to modify this job")
 
-        if self.notification_service:
-            await self.notification_service.send_notification(
-                user_id=job.client_id,
-                title="Job Deleted",
-                body="Your scheduled job has been deleted",
-                data={"job_id": job_id, "event": "job_deleted"},
-            )
+        # Find the slot
+        slot = None
+        for s in job.schedule_slots:
+            if s.id == slot_id:
+                slot = s
+                break
 
-    async def get_jobs_by_client(self, client_id: int, status: Optional[str] = None) -> List[models.Job]:
-        """Get all jobs for a client with optional status filter."""
-        query = select(models.Job).filter(models.Job.client_id == client_id)
-        if status:
-            query = query.filter(models.Job.status == status)
+        if not slot:
+            raise HTTPException(status_code=404, detail="Schedule slot not found")
 
-        result = await self.db.execute(query)
-        return result.scalars().all()
+        if slot.is_accepted is not None:
+            raise HTTPException(status_code=400, detail="This slot has already been processed")
 
-    async def get_jobs_by_cleaner(self, cleaner_id: int, status: Optional[str] = None) -> List[models.Job]:
-        """Get all jobs for a cleaner with optional status filter."""
-        query = select(models.Job).filter(models.Job.cleaner_id == cleaner_id)
-        if status:
-            query = query.filter(models.Job.status == status)
+        # Update the slot and job
+        slot.is_accepted = True
+        job.cleaner_id = cleaner_id
+        job.status = JobStatus.SCHEDULED
+        job.scheduled_for = slot.start_time
 
-        result = await self.db.execute(query)
-        return result.scalars().all()
+        return await self.repository.update_job(job)
 
-    async def assign_cleaner(self, job_id: int, cleaner_id: int) -> Tuple[models.Job, bool]:
-        """Assign a cleaner to a job."""
-        job = await self.get_job(job_id)
+    async def start_job(self, job_id: UUID, cleaner_id: UUID) -> Job:
+        """Mark a job as started by the cleaner."""
+        job = await self.repository.get_job_by_id(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
 
-        if job.status != models.JobStatus.PENDING:
-            raise BusinessLogicError("Can only assign cleaners to pending jobs")
+        # Verify cleaner assignment
+        if job.cleaner_id != cleaner_id:
+            raise HTTPException(status_code=403, detail="Not authorized to start this job")
 
-        if job.cleaner_id:
-            raise BusinessLogicError("Job already has an assigned cleaner")
+        # Validate job status
+        if job.status != JobStatus.SCHEDULED:
+            raise HTTPException(status_code=400, detail=f"Cannot start a job with status {job.status}")
+
+        # Update job status
+        job.status = JobStatus.IN_PROGRESS
+        job.started_at = datetime.now(timezone.utc)
+
+        return await self.repository.update_job(job)
+
+    async def complete_job(self, job_id: UUID, cleaner_id: UUID, actual_duration_minutes: int) -> Job:
+        """Mark a job as completed by the cleaner."""
+        job = await self.repository.get_job_by_id(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+
+        # Verify cleaner assignment
+        if job.cleaner_id != cleaner_id:
+            raise HTTPException(status_code=403, detail="Not authorized to complete this job")
+
+        # Validate job status
+        if job.status != JobStatus.IN_PROGRESS:
+            raise HTTPException(status_code=400, detail=f"Cannot complete a job with status {job.status}")
+
+        # Validate duration is reasonable
+        if not job.started_at:
+            raise HTTPException(status_code=500, detail="Job started_at timestamp missing")
+
+        # Calculate the actual time elapsed since job start
+        elapsed_minutes = (datetime.now(timezone.utc) - job.started_at).total_seconds() / 60
+
+        # Allow some flexibility in reported duration, but flag large discrepancies
+        # This could be refined with business rules
+        if abs(actual_duration_minutes - elapsed_minutes) > 30:  # 30 min discrepancy
+            # Could log this for review instead of failing
+            pass
+
+        # Calculate final cost based on actual duration
+        final_cost = self._calculate_final_cost(job.base_cost, actual_duration_minutes, job.estimated_duration_minutes)
 
         # Update job
-        job.cleaner_id = cleaner_id
-        job.status = models.JobStatus.ACCEPTED
-        await self.db.commit()
-        await self.db.refresh(job)
+        job.status = JobStatus.COMPLETED
+        job.completed_at = datetime.now(timezone.utc)
+        job.actual_duration_minutes = actual_duration_minutes
+        job.final_cost = final_cost
 
-        if self.notification_service:
-            # Notify client
-            await self.notification_service.send_notification(
-                user_id=job.client_id,
-                title="Cleaner Assigned",
-                body="A cleaner has been assigned to your job",
-                data={"job_id": job.id, "event": "cleaner_assigned"},
-            )
+        return await self.repository.update_job(job)
 
-        return job, True
+    def _calculate_final_cost(self, base_cost: float, actual_minutes: int, estimated_minutes: int) -> float:
+        """
+        Calculate the final cost of a job.
+        For jobs that take longer than estimated, add charges for the extra time.
+        """
+        if actual_minutes <= estimated_minutes:
+            return base_cost
 
-    async def start_job(self, job_id: int) -> models.Job:
-        """Start a job and begin time tracking."""
-        if not self.time_tracking_manager:
-            raise BusinessLogicError("Time tracking is not configured")
+        # Calculate extra time cost
+        extra_minutes = actual_minutes - estimated_minutes
+        extra_cost = extra_minutes * self.base_rate_per_minute * 1.2  # 20% premium for extra time
 
-        job = await self.get_job(job_id)
+        return base_cost + extra_cost
 
-        if job.status != models.JobStatus.ACCEPTED:
-            raise BusinessLogicError("Only accepted jobs can be started")
+    async def mark_job_paid(self, job_id: UUID) -> Job:
+        """Mark a job as paid."""
+        job = await self.repository.get_job_by_id(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
 
-        # Start time tracking
-        tracking_result = await self.time_tracking_manager.start_tracking(job)
+        # Validate job status
+        if job.status != JobStatus.COMPLETED:
+            raise HTTPException(status_code=400, detail=f"Cannot mark as paid a job with status {job.status}")
 
-        # Update job status and start time
-        job.status = models.JobStatus.IN_PROGRESS
-        job.start_time = tracking_result["start_time"]
-        await self.db.commit()
-        await self.db.refresh(job)
+        # Update job status
+        job.status = JobStatus.PAID
 
-        return job
+        return await self.repository.update_job(job)
 
-    async def complete_job(self, job_id: int) -> models.Job:
-        """Complete a job and finalize time tracking."""
-        if not self.time_tracking_manager:
-            raise BusinessLogicError("Time tracking is not configured")
+    async def cancel_job(self, job_id: UUID, user_id: UUID, is_client: bool) -> Job:
+        """Cancel a job."""
+        job = await self.repository.get_job_by_id(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
 
-        job = await self.get_job(job_id)
+        # Verify authorization
+        if is_client and job.client_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to cancel this job")
+        elif not is_client and job.cleaner_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to cancel this job")
 
-        if job.status != models.JobStatus.IN_PROGRESS:
-            raise BusinessLogicError("Only in-progress jobs can be completed")
+        # Validate job status - can't cancel completed or paid jobs
+        if job.status in [JobStatus.COMPLETED, JobStatus.PAID]:
+            raise HTTPException(status_code=400, detail=f"Cannot cancel a job with status {job.status}")
 
-        # Stop time tracking and get final details
-        tracking_result = await self.time_tracking_manager.stop_tracking(job)
+        # Update job status
+        job.status = JobStatus.CANCELED
 
-        # Update job with final details
-        job.status = models.JobStatus.COMPLETED
-        job.end_time = tracking_result["end_time"]
-        job.actual_duration = tracking_result["actual_duration"]
-        job.final_amount = tracking_result["final_amount"]
-        await self.db.commit()
-        await self.db.refresh(job)
+        return await self.repository.update_job(job)
 
-        return job
-
-    async def _validate_status_transition(self, job: models.Job, new_status: str) -> None:
-        """Validate if the status transition is allowed."""
-        valid_transitions = {
-            models.JobStatus.PENDING: [
-                models.JobStatus.ACCEPTED,
-                models.JobStatus.CANCELLED,
-            ],
-            models.JobStatus.ACCEPTED: [
-                models.JobStatus.IN_PROGRESS,
-                models.JobStatus.CANCELLED,
-            ],
-            models.JobStatus.IN_PROGRESS: [
-                models.JobStatus.COMPLETED,
-                models.JobStatus.CANCELLED,
-            ],
-            models.JobStatus.COMPLETED: [],  # No transitions allowed from completed
-            models.JobStatus.CANCELLED: [],  # No transitions allowed from cancelled
-        }
-
-        if new_status not in valid_transitions.get(job.status, []):
-            raise BusinessLogicError(f"Invalid status transition from {job.status} to {new_status}")
+    async def get_available_jobs(self, limit: int = 50, offset: int = 0) -> List[Job]:
+        """Get jobs that are available for cleaners to pick up."""
+        return await self.repository.get_available_jobs(limit, offset)
